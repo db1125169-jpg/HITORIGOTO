@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HITORIGOTO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #faf8f9;
+      --bg-sub: #f3eff2;
+      --navy-main: #2c3e50;
+      --navy-hover: #1a252f;
+      --navy-light: #e2e8f0;
+      --navy-border: #cbd5e1;
+
+      --pink-soft: #c88a99;
+      --pink-bg: #fcf2f4;
+      --pink-border: #ebd0d6;
+
+      /* 主張を抑えた上品なくすみ水色 */
+      --active-kusumi-bg: #e2eafd;
+      --active-kusumi-border: #9bb0c1;
+      --active-kusumi-text: #516e89;
+
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+
+      --card-bg: #ffffff;
+      --modal-bg: #ffffff;
+      --input-bg: #faf8f9;
+    }
+
+    * { box-sizing: border-box; }
+    html { scrollbar-gutter: stable; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; overflow-x: hidden; position: relative;
+    }
+
+    .blur-wrapper {
+      width: 100%; display: flex; flex-direction: column; align-items: center;
+      transition: filter 0.2s ease;
+    }
+    .body-blurred { filter: blur(5px); }
+
+    .fixed-top-area {
+      position: sticky; top: 0; z-index: 50;
+      width: 100%; max-width: 500px;
+      background: rgba(250, 248, 249, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 2px solid var(--navy-main);
+      padding: 12px 18px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .header-top-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+
+    h1 {
+      font-size: 1.38rem; font-weight: 700; color: var(--navy-main); margin: 0;
+      letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;
+    }
+
+    .user-column { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+    .user-badge {
+      background: var(--pink-bg); padding: 4px 8px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 600; color: var(--navy-main);
+      border: 1px solid var(--pink-border); cursor: pointer;
+      transition: all 0.12s ease; white-space: nowrap;
+    }
+    .user-badge:hover { border-color: var(--pink-soft); }
+
+    .omamori-btn {
+      background: var(--navy-main); border: none; color: #ffffff;
+      border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.12s ease; width: fit-content;
+    }
+    .omamori-btn:hover { opacity: 0.9; }
+    .omamori-btn.done { background: #94a3b8 !important; color: #ffffff !important; border: none !important; }
+
+    .tab-nav {
+      display: flex; width: 100%; background: #e2e8f0;
+      border-radius: 8px; padding: 3px; border: 1px solid var(--navy-border);
+    }
+
+    .tab-btn {
+      flex: 1; padding: 8px 0; text-align: center; border: none; background: none;
+      font-size: 0.78rem; font-weight: 700; font-family: inherit; color: var(--text-sub);
+      cursor: pointer; border-radius: 6px; transition: all 0.12s ease;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    .tab-btn.active {
+      background: var(--navy-main); color: #ffffff;
+      box-shadow: 0 2px 4px rgba(44, 62, 80, 0.15);
+    }
+
+    .view-section {
+      width: 100%; max-width: 500px; padding: 20px 16px 100px 16px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+
+    .card {
+      background: var(--card-bg); padding: 18px 20px; border-radius: 12px;
+      border: 1.5px solid var(--pink-border); position: relative; transition: opacity 0.12s ease, transform 0.12s ease;
+      box-shadow: 0 2px 8px rgba(200, 138, 153, 0.05);
+    }
+
+    .card.my-post { border: 2px solid var(--navy-main); background: #ffffff; }
+
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .author-name { font-size: 0.8rem; font-weight: 700; color: var(--navy-main); letter-spacing: 0.02em; }
+    .post-time { font-size: 0.68rem; color: #94a3b8; font-weight: 500; }
+    
+    .delete-btn { background: none; border: none; color: var(--pink-soft); font-size: 0.72rem; font-weight: 600; cursor: pointer; padding: 2px 4px; font-family: inherit; }
+    .delete-btn:hover { text-decoration: underline; }
+
+    .card-text { font-size: 0.92rem; line-height: 1.6; color: var(--text-main); margin-bottom: 14px; white-space: pre-wrap; font-weight: 400; }
+
+    .stamp-container { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+    
+    .stamp-btn {
+      background: var(--bg-main); border: 1px solid var(--navy-border);
+      border-radius: 8px; padding: 7px 10px; font-size: 0.76rem; font-family: inherit;
+      color: var(--text-main); cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; transition: all 0.15s ease; font-weight: 500;
+    }
+
+    .stamp-btn.active {
+      border-color: var(--active-kusumi-border);
+      background: var(--active-kusumi-bg);
+      color: var(--active-kusumi-text);
+      font-weight: 700;
+    }
+
+    .blank-pop-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #ffffff; display: flex; justify-content: center; align-items: center; z-index: 300;
+    }
+
+    .ecg-container {
+      width: 130px; height: 60px; display: flex; align-items: center; justify-content: center;
+      position: relative; animation: pulsePop 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    .ecg-svg { width: 100%; height: 100%; }
+
+    .ecg-path {
+      stroke: var(--navy-main); stroke-width: 3; fill: none;
+      stroke-dasharray: 180; stroke-dashoffset: 180; stroke-linecap: round; stroke-linejoin: round;
+      animation: ecgDraw 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    @keyframes ecgDraw {
+      0% { stroke-dashoffset: 180; opacity: 1; }
+      80% { stroke-dashoffset: 0; opacity: 1; }
+      100% { stroke-dashoffset: 0; opacity: 0; }
+    }
+
+    @keyframes pulsePop {
+      0% { transform: scale(0.92); }
+      45% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    /* FAB & 誘導フキダシ */
+    .fab-fixed-container {
+      position: fixed; bottom: 24px; right: max(20px, calc(50vw - 230px)); z-index: 40;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    }
+
+    .fab-tooltip {
+      background: var(--navy-main); color: #ffffff; font-size: 0.72rem; font-weight: 600;
+      padding: 6px 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: relative; white-space: nowrap; animation: bounceTooltip 2s infinite ease-in-out;
+      transition: opacity 0.2s ease;
+    }
+    .fab-tooltip::after {
+      content: ''; position: absolute; bottom: -5px; right: 20px;
+      width: 0; height: 0;
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-top: 6px solid var(--navy-main);
+    }
+
+    @keyframes bounceTooltip {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .fab {
+      width: 54px; height: 54px; background: var(--navy-main);
+      border-radius: 50%; cursor: pointer; border: none; position: relative;
+      transition: transform 0.12s ease, background-color 0.12s ease;
+      box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25);
+    }
+    .fab::before, .fab::after {
+      content: ''; position: absolute; top: 50%; left: 50%; background-color: #ffffff;
+      border-radius: 2px; transform: translate(-50%, -50%);
+    }
+    .fab::before { width: 2px; height: 20px; }
+    .fab::after { width: 20px; height: 2px; }
+    .fab:hover { background-color: var(--navy-hover); }
+    .fab:active { transform: scale(0.92); }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.35); backdrop-filter: blur(3px);
+      display: flex; justify-content: center; align-items: center; z-index: 100;
+      animation: modalQuickFade 0.12s ease-out forwards;
+    }
+
+    @keyframes modalQuickFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-content {
+      background: var(--modal-bg); padding: 24px 20px; border-radius: 14px;
+      width: 90%; max-width: 380px; border: 2px solid var(--navy-main);
+      position: relative; margin: auto; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .textarea-wrapper { position: relative; width: 100%; margin-top: 10px; }
+
+    textarea {
+      width: 100%; height: 110px; border: 1.5px solid var(--navy-border);
+      border-radius: 8px; padding: 12px 12px 28px 12px; font-size: 0.9rem; resize: none; outline: none;
+      background: var(--input-bg); color: var(--text-main); font-family: inherit;
+      transition: border-color 0.12s ease;
+    }
+    textarea:focus { border-color: var(--pink-soft); }
+
+    .char-counter {
+      position: absolute; right: 10px; bottom: 8px;
+      font-size: 0.72rem; font-weight: 600; color: #94a3b8; pointer-events: none; transition: color 0.1s ease;
+    }
+    .char-counter.limit { color: var(--pink-soft); font-weight: 700; }
+
+    .ng-notice-text { font-size: 0.72rem; color: var(--text-sub); text-align: center; margin: 10px 0 6px 0; }
+
+    .btn-main {
+      width: 100%; background: var(--navy-main); color: #ffffff;
+      border: none; padding: 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; margin-top: 6px; letter-spacing: 0.05em;
+      transition: background-color 0.12s ease;
+    }
+    .btn-main:hover { background-color: var(--navy-hover); }
+
+    .btn-danger {
+      width: 100%; background: var(--pink-soft); color: #ffffff;
+      border: none; padding: 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; margin-top: 6px; letter-spacing: 0.05em;
+    }
+
+    .btn-secondary {
+      width: 100%; background: #f1f5f9; color: var(--navy-main);
+      border: 1px solid var(--navy-border); padding: 10px; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 8px;
+    }
+
+    .close-btn { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.1rem; color: var(--text-sub); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div class="blur-wrapper" id="mainWrapper">
+    <div class="fixed-top-area">
+      <div class="header-top-row">
+        <h1>HITORIGOTO</h1>
+        <div class="user-column">
+          <div class="user-badge" onclick="openNameModal(false);" id="currentUserBadge">---</div>
+          <button class="omamori-btn" id="headerOmamoriBtn" onclick="openOmamoriModal();">Lucky Charm</button>
+        </div>
+      </div>
+      
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tabTimeline" onclick="switchTab('timeline');">TIMELINE</button>
+        <button class="tab-btn" id="tabMypage" onclick="switchTab('mypage');">MY POSTS</button>
+      </div>
+    </div>
+
+    <div class="view-section" id="timelineView"></div>
+    <div class="view-section" id="mypageView" style="display: none;"></div>
+  </div>
+
+  <!-- 右下FABボタン＆誘導フキダシ -->
+  <div class="fab-fixed-container">
+    <div class="fab-tooltip" id="fabTooltip">ここから独り言をつぶやいてみよう！</div>
+    <button class="fab" onclick="openPostModal();"></button>
+  </div>
+
+  <!-- おみくじモーダル -->
+  <div class="modal-overlay" id="omamoriModal" style="display:none;">
+    <div class="modal-content" style="text-align: center;">
+      <button class="close-btn" onclick="closeOmamoriModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; letter-spacing:0.08em; font-size:1.05rem;">LUCKY CHARM</h3>
+      <div id="omamoriTextDisplay" style="font-size:0.88rem; line-height:1.6; color:var(--text-main); padding:16px 14px; background:var(--pink-bg); border-radius:8px; margin:14px 0; border:1px solid var(--pink-border); min-height:80px; display:flex; align-items:center; justify-content:center; text-align:left;">
+        今日のおみくじを引く
+      </div>
+      <button class="btn-main" id="drawOmamoriBtn" onclick="drawOmamori()">DRAW</button>
+    </div>
+  </div>
+
+  <!-- 名前決定・ウェルカムモーダル -->
+  <div class="modal-overlay" id="nameModal" style="display:none;">
+    <div class="modal-content" style="text-align: center;">
+      <button class="close-btn" id="nameModalCloseBtn" onclick="closeNameModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; letter-spacing:0.08em; font-size:1.05rem;">HITORIGOTO</h3>
+      
+      <div id="welcomeIntroText" style="font-size:0.78rem; line-height:1.5; color:var(--text-sub); margin:6px 0 12px 0;">
+        日常の小さなつぶやきを気軽に投稿できる匿名SNSです。<br>
+        1日1回引ける<b>【おみくじ】</b>機能もついてるよ！<br>
+        まずはルーレットであなただけの名前を決めよう✨
+      </div>
+
+      <div id="rouletteDisplay" style="font-size:1rem; color:var(--navy-main); padding:14px; background:var(--pink-bg); border-radius:8px; margin:10px 0 14px 0; border:1px solid var(--pink-border); font-weight:700;">---</div>
+      <button class="btn-main" id="startBtn" onclick="runRoulette()">GENERATE</button>
+      <button class="btn-secondary" id="confirmBtn" style="display:none;" onclick="confirmName()">SET NAME</button>
+    </div>
+  </div>
+
+  <!-- 投稿モーダル -->
+  <div class="modal-overlay" id="postModal" style="display: none;">
+    <div class="modal-content" id="postModalContent">
+      <button class="close-btn" onclick="closePostModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin: 0 0 4px 0; font-weight: 700; letter-spacing: 0.08em; font-size: 1.05rem;">NEW POST</h3>
+      <div class="textarea-wrapper">
+        <textarea id="postInput" maxlength="140" oninput="updateCharCount(this)"></textarea>
+        <span class="char-counter" id="charCounter">0 / 140</span>
+      </div>
+      <div class="ng-notice-text">※自分や誰かの名前など、個人の特定情報は書かないでね</div>
+      <button class="btn-main" id="submitPostBtn" onclick="addPostWithAnimation()">POST</button>
+    </div>
+  </div>
+
+  <!-- 削除確認モーダル -->
+  <div class="modal-overlay" id="deleteConfirmModal" style="display: none;">
+    <div class="modal-content" style="text-align: center;">
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; font-size:1rem;">投稿を削除しますか？</h3>
+      <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:18px;">この操作は取り消せません。</p>
+      <button class="btn-danger" id="execDeleteBtn">削除</button>
+      <button class="btn-secondary" onclick="closeDeleteModal();">キャンセル</button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // Firebase設定
+    // -------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyD550aqrZtUc2z7bAm67erodMDQ6...", 
+      authDomain: "hitorigoto-8981c.firebaseapp.com",
+      projectId: "hitorigoto-8981c",
+      storageBucket: "hitorigoto-8981c.firebasestorage.app",
+      messagingSenderId: "854303908051",
+      appId: "1:854303908051:web:ed1bae521405817..."
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- 0. 固有ユーザーID & ユーザー名管理 ---
+    let myUserId = localStorage.getItem('hitorigoto_user_id');
+    if (!myUserId) {
+      myUserId = 'user_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('hitorigoto_user_id', myUserId);
+    }
+
+    let currentUserName = localStorage.getItem('hitorigoto_user_name') || "";
+    let postsData = [];
+
+    let myStampsMap = JSON.parse(localStorage.getItem('hitorigoto_my_stamps') || '{}');
+
+    function saveMyStampsMap() {
+      localStorage.setItem('hitorigoto_my_stamps', JSON.stringify(myStampsMap));
+    }
+
+    // --- 1. Web Audio API ---
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playCuteSignalSound() {
+      try {
+        initAudio();
+        const t = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine'; osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(1396.91, t);
+        osc1.frequency.setValueAtTime(2093.00, t + 0.06);
+
+        osc2.frequency.setValueAtTime(2093.00, t);
+        osc2.frequency.setValueAtTime(2793.83, t + 0.06);
+
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.setValueAtTime(0.18, t + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(t); osc2.start(t);
+        osc1.stop(t + 0.22); osc2.stop(t + 0.22);
+      } catch (e) {}
+    }
+
+    function playChimeSound() {
+      try {
+        initAudio();
+        const t = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine'; osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(1046.5, t);
+        osc2.frequency.setValueAtTime(1318.51, t + 0.04);
+
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(t); osc1.stop(t + 0.4);
+        osc2.start(t + 0.04); osc2.stop(t + 0.4);
+      } catch (e) {}
+    }
+
+    function playPhoneCallClick() {
+      try {
+        initAudio();
+        const t = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine'; osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(2400, t);
+        osc2.frequency.setValueAtTime(2800, t);
+
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(t); osc2.start(t);
+        osc1.stop(t + 0.025); osc2.stop(t + 0.025);
+      } catch (e) {}
+    }
+
+    function playConfirmSound() {
+      try {
+        initAudio();
+        const t = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine'; osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(880, t);
+        osc2.frequency.setValueAtTime(1318.51, t + 0.03);
+
+        gain.gain.setValueAtTime(0.176, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(t); osc1.stop(t + 0.25);
+        osc2.start(t + 0.03); osc2.stop(t + 0.25);
+      } catch (e) {}
+    }
+
+    // --- 2. おみくじ機能 ---
+    const luckRanks = ["【超大吉】", "【大吉】", "【中吉】", "【小吉】", "【吉】", "【末吉】", "【平】", "【微吉】", "【隠れ大吉】"];
+    const messages = [
+      "今日はなんだか全部うまくいく予感。思い切って一歩踏み出してみて。",
+      "美味しい温かい食べ物を食べると運気が最高潮に達します。",
+      "欲しかったものがひょっこり手に入るかも。焦らずゆったり過ごそう。",
+      "ちょっとしたラッキーが連続する日。笑顔でいるとさらに良いことアリ。",
+      "今日は省エネモードで正解。頑張らない選択が吉と出ます。",
+      "気になっていた本や音楽に触れると心が洗われる1日に。",
+      "無理せず早めに布団に入りましょう。明日のあなたが感謝します。",
+      "誰かのちょっとした言葉に救われる日。素直な気持ちが大切。",
+      "欲張らないことで一番良い結果が得られます。マイペースにいこう。",
+      "少し遠回りしたほうが面白い発見があるかも。のんびり歩こう。",
+      "ずっと迷っていたことに決着がつく日。自分の直感を信じて。",
+      "甘いものを一口食べるとアイデアがひらめきそう。"
+    ];
+    const luckItems = [
+      "ラッキーアイテム：温かい紅茶", "ラッキーアイテム：お気に入りの靴下",
+      "ラッキーアクション：深呼吸3回", "ラッキーアクション：ストレッチ",
+      "ラッキーアイテム：甘いお菓子", "ラッキーアクション：5分間の二度寝",
+      "ラッキーアイテム：お気に入りのプレイリスト", "ラッキーアクション：窓を開けて風を吸う"
+    ];
+
+    function generateRandomOmikujiText() {
+      const rank = luckRanks[Math.floor(Math.random() * luckRanks.length)];
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      const item = luckItems[Math.floor(Math.random() * luckItems.length)];
+      return `${rank}\n${msg}\n\n💡 ${item}`;
+    }
+
+    function checkOmamoriStatus() {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem('omamori_date');
+      const headerBtn = document.getElementById('headerOmamoriBtn');
+      if (lastDate === today) {
+        headerBtn.classList.add('done');
+      } else {
+        headerBtn.classList.remove('done');
+      }
+    }
+
+    function openOmamoriModal() {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem('omamori_date');
+      const savedWord = localStorage.getItem('omamori_word');
+      const display = document.getElementById('omamoriTextDisplay');
+      const drawBtn = document.getElementById('drawOmamoriBtn');
+
+      if (lastDate === today && savedWord) {
+        display.innerText = savedWord;
+        drawBtn.style.display = 'none';
+      } else {
+        display.innerText = '今日のおみくじを引く';
+        drawBtn.style.display = 'block';
+        drawBtn.textContent = 'DRAW';
+      }
+      document.getElementById('omamoriModal').style.display = 'flex';
+    }
+
+    function closeOmamoriModal() { document.getElementById('omamoriModal').style.display = 'none'; }
+
+    function drawOmamori() {
+      const today = new Date().toDateString();
+      const resultText = generateRandomOmikujiText();
+      localStorage.setItem('omamori_date', today);
+      localStorage.setItem('omamori_word', resultText);
+
+      const display = document.getElementById('omamoriTextDisplay');
+      const drawBtn = document.getElementById('drawOmamoriBtn');
+      display.innerText = resultText;
+      drawBtn.style.display = 'none';
+      checkOmamoriStatus();
+      playChimeSound();
+    }
+
+    // --- 3. 名前生成システム（50×50＝2500パターン） ---
+    const prefixList = [
+      "寝不足の", "大食いの", "限界突破の", "布団が恋人の", "カフェイン依存の",
+      "現実逃避中の", "二度寝のプロ", "思考停止した", "猫に甘い", "徳を積む",
+      "腹ペコの", "省エネ中の", "マイペースな", "週末が待ち遠しい", "夜型人間の",
+      "お菓子を隠し持った", "うっかり屋の", "運動不足の", "メンタル強めな", "迷走中の",
+      "放課後の", "テスト前の", "課題に追われる", "前髪が気になる", "靴下が派手な",
+      "炭酸が好きな", "スマホ中毒の", "イヤホンを忘れた", "早起きの", "コタツから出られない",
+      "充電が10%の", "通知に敏感な", "歩くのが早い", "アイスを愛する", "語彙力が迷子の",
+      "日陰を歩く", "静かに熱い", "雨男（女）の", "影が薄い", "存在感が凄い",
+      "常に腹八分目の", "方向音痴の", "夢見がちな", "好奇心の塊", "いつでも眠い",
+      "朝に強い", "夜に本気出す", "テンション高めの", "悟りを開いた", "のんびり屋の"
+    ];
+
+    const nounList = [
+      "一般ピーポー", "カフェイン中毒", "動物好き", "すいか", "マグカップ",
+      "散歩人", "ぽんこつ", "睡眠欲", "地球人", "黒猫",
+      "おふとんサポーター", "夜食担当", "おうち大好き人間", "帰宅部エース", "パン派",
+      "ご飯派", "チャイム待機勢", "購買ダッシュ担当", "ノート提出者", "赤ペン愛好家",
+      "シャープペン芯", "消しゴムの角", "図書館の主", "窓際族", "階段ダッシュ民",
+      "体育館のすみっこ", "購買の焼きそばパン", "放課後ヒーロー", "噂の転校生", "通りすがり",
+      "ペンケース", "ワイヤレスイヤホン", "文系担当", "理系担当", "芸術肌",
+      "雑学王", "隠れ名物", "タイムトラベラー", "秘密兵器", "名誉顧問",
+      "マスコットキャラ", "見守り隊", "深夜の住人", "朝活マスター", "マイペース人間",
+      "平和主義者", "ロマンチスト", "チャレンジャー", "ドリーマー", "自由人"
+    ];
+
+    let tempGeneratedName = "";
+
+    window.onload = () => { 
+      checkOmamoriStatus();
+      checkTooltipStatus();
+
+      if (!currentUserName) {
+        openNameModal(true);
+      } else {
+        document.getElementById('currentUserBadge').textContent = currentUserName;
+      }
+
+      subscribeFirestore();
+    };
+
+    function checkTooltipStatus() {
+      const hasPosted = localStorage.getItem('hitorigoto_has_posted');
+      const tooltip = document.getElementById('fabTooltip');
+      if (hasPosted === 'true') {
+        tooltip.style.display = 'none';
+      } else {
+        tooltip.style.display = 'block';
+      }
+    }
+
+    function dismissTooltip() {
+      localStorage.setItem('hitorigoto_has_posted', 'true');
+      const tooltip = document.getElementById('fabTooltip');
+      if (tooltip) tooltip.style.display = 'none';
+    }
+
+    function runRoulette() {
+      const display = document.getElementById('rouletteDisplay');
+      const startBtn = document.getElementById('startBtn');
+      const confirmBtn = document.getElementById('confirmBtn');
+      startBtn.disabled = true; confirmBtn.style.display = 'none';
+
+      let count = 0;
+      const totalSteps = 18;
+      const constantInterval = 45;
+
+      function step() {
+        if (count >= totalSteps) {
+          startBtn.disabled = false;
+          startBtn.textContent = "RETRY";
+          confirmBtn.style.display = 'block';
+          playPhoneCallClick();
+          return;
+        }
+
+        const p = prefixList[Math.floor(Math.random() * prefixList.length)];
+        const n = nounList[Math.floor(Math.random() * nounList.length)];
+        tempGeneratedName = `${p}${n}`;
+        display.textContent = tempGeneratedName;
+
+        playPhoneCallClick();
+        count++;
+        setTimeout(step, constantInterval);
+      }
+      step();
+    }
+
+    // ★名前変更時に過去の全投稿の名前も一括書き換え（リンク）
+    async function confirmName() {
+      playConfirmSound();
+      currentUserName = tempGeneratedName; 
+      localStorage.setItem('hitorigoto_user_name', currentUserName);
+      document.getElementById('currentUserBadge').textContent = currentUserName;
+
+      closeNameModal();
+
+      // 過去に投稿した自分のデータをすべて新しい名前に更新する
+      try {
+        const querySnapshot = await db.collection("posts").where("userId", "==", myUserId).get();
+        const batch = db.batch();
+        querySnapshot.forEach((doc) => {
+          batch.update(doc.ref, { author: currentUserName });
+        });
+        await batch.commit();
+      } catch (e) {
+        console.error("過去投稿の名前更新エラー:", e);
+      }
+    }
+
+    function openNameModal(isForced = false) { 
+      const closeBtn = document.getElementById('nameModalCloseBtn');
+      const introText = document.getElementById('welcomeIntroText');
+
+      if (isForced) {
+        closeBtn.style.display = 'none';
+        introText.style.display = 'block';
+        document.getElementById('mainWrapper').classList.add('body-blurred');
+      } else {
+        closeBtn.style.display = 'block';
+        introText.style.display = 'none';
+      }
+
+      document.getElementById('startBtn').textContent = "GENERATE";
+      document.getElementById('confirmBtn').style.display = 'none';
+
+      if (!currentUserName && !tempGeneratedName) {
+        document.getElementById('rouletteDisplay').textContent = "---";
+      } else {
+        document.getElementById('rouletteDisplay').textContent = currentUserName || tempGeneratedName;
+      }
+
+      document.getElementById('nameModal').style.display = 'flex'; 
+    }
+
+    function closeNameModal() { 
+      document.getElementById('mainWrapper').classList.remove('body-blurred');
+      document.getElementById('nameModal').style.display = 'none'; 
+    }
+
+    // --- 4. クラウド同期（Firestore連携） ---
+
+    function subscribeFirestore() {
+      db.collection("posts")
+        .orderBy("createdAt", "asc")
+        .onSnapshot((snapshot) => {
+          postsData = [];
+          snapshot.forEach((doc) => {
+            postsData.push({ id: doc.id, ...doc.data() });
+          });
+          renderPosts();
+        }, (error) => {
+          console.error("Firestore受信エラー:", error);
+        });
+    }
+
+    // --- 日時フォーマット処理 ---
+    function formatPostTime(timestamp) {
+      if (!timestamp) return 'たった今';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMin = Math.floor(diffMs / (1000 * 60));
+      const diffHour = Math.floor(diffMs / (1000 * 60 * 60));
+
+      if (diffMin < 1) return 'たった今';
+      if (diffMin < 60) return `${diffMin}分前`;
+      if (diffHour < 24) return `${diffHour}時間前`;
+
+      const isSameYear = date.getFullYear() === now.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const mins = String(date.getMinutes()).padStart(2, '0');
+
+      if (isSameYear) {
+        return `${month}/${day} ${hours}:${mins}`;
+      } else {
+        return `${date.getFullYear()}/${month}/${day}`;
+      }
+    }
+
+    // --- 5. タブ & 投稿描画 ---
+    function switchTab(tab) {
+      const timelineView = document.getElementById('timelineView');
+      const mypageView = document.getElementById('mypageView');
+      const tabTimeline = document.getElementById('tabTimeline');
+      const tabMypage = document.getElementById('tabMypage');
+
+      if (tab === 'timeline') {
+        timelineView.style.display = 'flex'; mypageView.style.display = 'none';
+        tabTimeline.classList.add('active'); tabMypage.classList.remove('active');
+      } else {
+        timelineView.style.display = 'none'; mypageView.style.display = 'flex';
+        tabMypage.classList.add('active'); tabTimeline.classList.remove('active');
+      }
+    }
+
+    function renderPosts() {
+      const timelineView = document.getElementById('timelineView');
+      const mypageView = document.getElementById('mypageView');
+      timelineView.innerHTML = ''; mypageView.innerHTML = '';
+
+      if (postsData.length === 0) {
+        timelineView.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.85rem;">まだ投稿がありません。<br>右下の＋ボタンから最初の独り言を投稿してみよう！</div>`;
+      }
+
+      const myPosts = postsData.filter(p => p.userId === myUserId);
+      if (myPosts.length === 0) {
+        mypageView.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.85rem;">まだあなたの投稿はありません</div>`;
+      }
+
+      postsData.forEach(post => {
+        const cardHtml = createCardElement(post);
+        timelineView.prepend(cardHtml.cloneNode(true));
+        if (post.userId === myUserId) mypageView.prepend(cardHtml.cloneNode(true));
+      });
+    }
+
+    function createCardElement(post) {
+      const isMine = (post.userId === myUserId);
+      const card = document.createElement('div');
+      
+      card.className = isMine ? 'card my-post' : 'card';
+      card.id = `card-${post.id}`;
+
+      const stamps = post.stamps || { like: 0, wakar: 0, sleep: 0, eat: 0, erai: 0, eco: 0 };
+      const myPostStamps = myStampsMap[post.id] || {};
+
+      const stampKeys = [
+        { key: 'like', label: 'いいね' },
+        { key: 'wakar', label: 'めっちゃわかる' },
+        { key: 'sleep', label: '寝て忘れよう' },
+        { key: 'eat', label: 'ごはん食べよう' },
+        { key: 'erai', label: 'えらい' },
+        { key: 'eco', label: '省エネモード' }
+      ];
+
+      let stampButtonsHtml = '';
+      stampKeys.forEach(item => {
+        const isReacted = !!myPostStamps[item.key];
+        const activeClass = isReacted ? ' active' : '';
+        const count = stamps[item.key] || 0;
+        stampButtonsHtml += `
+          <button class="stamp-btn${activeClass}" onclick="toggleStamp(this, '${post.id}', '${item.key}')">
+            <span>${item.label}</span>
+            <span class="count">${count}</span>
+          </button>
+        `;
+      });
+
+      const timeText = formatPostTime(post.createdAt);
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="header-left">
+            <span class="author-name">${escapeHtml(post.author)}</span>
+            <span class="post-time">${timeText}</span>
+          </div>
+          ${isMine ? `<button class="delete-btn" onclick="openDeleteConfirmModal('${post.id}')">DELETE</button>` : ''}
+        </div>
+        <div class="card-text">${escapeHtml(post.text)}</div>
+        <div class="stamp-container">
+          ${stampButtonsHtml}
+        </div>
+      `;
+      return card;
+    }
+
+    async function toggleStamp(btn, postId, stampKey) {
+      const post = postsData.find(p => p.id === postId);
+      if (!post) return;
+
+      if (!myStampsMap[postId]) {
+        myStampsMap[postId] = {};
+      }
+
+      const stamps = post.stamps || { like: 0, wakar: 0, sleep: 0, eat: 0, erai: 0, eco: 0 };
+      const isAlreadyReacted = !!myStampsMap[postId][stampKey];
+
+      if (isAlreadyReacted) {
+        myStampsMap[postId][stampKey] = false;
+        stamps[stampKey] = Math.max(0, (stamps[stampKey] || 0) - 1);
+        btn.classList.remove('active');
+      } else {
+        myStampsMap[postId][stampKey] = true;
+        stamps[stampKey] = (stamps[stampKey] || 0) + 1;
+        btn.classList.add('active');
+        playCuteSignalSound();
+      }
+
+      saveMyStampsMap();
+
+      const countSpan = btn.querySelector('.count');
+      if (countSpan) countSpan.textContent = stamps[stampKey];
+
+      await db.collection("posts").doc(postId).update({ stamps: stamps });
+    }
+
+    // --- 6. 投稿・文字数・NGワード ---
+    const placeholderList = [
+      "なにがあった？（ここだけの秘密...）", "今日の小さな事件簿を教えて。", "今、ふと思ったくだらないことは？",
+      "誰にも言えない心の声をここに吐き出そう。", "今日食べた一番美味しかったものは？", "布団の中からお送りしています。",
+      "そろそろ限界かもしれない...", "明日から本気出す（たぶん）。", "今すぐどこかへ逃避行したい。",
+      "ただいま省エネモードで稼働中。", "一言、叫んでいかない？", "今日頑張った自分を自分で褒めるコーナー。",
+      "猫になりたい。", "今日のハイライトは何だった？", "なにか呟くと、誰かが優しく見守ってくれるよ。"
+    ];
+
+    function getRandomPlaceholder() { return placeholderList[Math.floor(Math.random() * placeholderList.length)]; }
+
+    function updateCharCount(textarea) {
+      if (textarea.value.length > 140) textarea.value = textarea.value.slice(0, 140);
+      const len = textarea.value.length;
+      const counter = document.getElementById('charCounter');
+      counter.textContent = `${len} / 140`;
+      if (len >= 140) counter.classList.add('limit');
+      else counter.classList.remove('limit');
+    }
+
+    function filterNgWords(text) {
+      let filteredText = text;
+
+      const sexualWords = [
+        "エロ", "えろ", "ちんこ", "チンコ", "おっぱい", "オッパイ", "セフレ", "せふれ", "セックス", "せっくす"
+      ];
+      sexualWords.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        filteredText = filteredText.replace(regex, '*'.repeat(word.length));
+      });
+
+      const strictWords = [
+        "死ね", "シネ", "くたばれ", "クタバレ", "殺す", "コロス", "消えろ"
+      ];
+      strictWords.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        filteredText = filteredText.replace(regex, '*'.repeat(word.length));
+      });
+
+      const hiraganaBoundaryWords = ["しね", "ころす", "きえろ", "くたばれ"];
+      hiraganaBoundaryWords.forEach(word => {
+        const regex = new RegExp(`(?<![ぁ-ん])${word}(?![ぁ-ん])`, 'gi');
+        filteredText = filteredText.replace(regex, '*'.repeat(word.length));
+      });
+
+      return filteredText;
+    }
+
+    function openPostModal() {
+      if (!currentUserName) {
+        openNameModal(true);
+        return;
+      }
+      
+      dismissTooltip();
+
+      const input = document.getElementById('postInput');
+      input.placeholder = getRandomPlaceholder();
+      input.value = '';
+      updateCharCount(input);
+      document.getElementById('postModal').style.display = 'flex';
+    }
+
+    async function addPostWithAnimation() {
+      const input = document.getElementById('postInput');
+      let text = input.value.trim();
+      if (!text) return;
+
+      dismissTooltip();
+
+      text = filterNgWords(text);
+      playCuteSignalSound();
+      closePostModal();
+
+      const blankScreen = document.createElement('div');
+      blankScreen.className = 'blank-pop-screen';
+      blankScreen.innerHTML = `
+        <div class="ecg-container">
+          <svg class="ecg-svg" viewBox="0 0 130 60">
+            <path class="ecg-path" d="M 0 30 L 40 30 L 52 10 L 65 50 L 78 18 L 88 30 L 130 30" />
+          </svg>
+        </div>
+      `;
+      document.body.appendChild(blankScreen);
+
+      await db.collection("posts").add({
+        userId: myUserId,
+        author: currentUserName,
+        text: text,
+        stamps: { like: 0, wakar: 0, sleep: 0, eat: 0, erai: 0, eco: 0 },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      input.value = '';
+
+      setTimeout(() => {
+        blankScreen.remove();
+      }, 1350);
+    }
+
+    // --- 7. 削除処理 ---
+    let postTargetToDelete = null;
+
+    function openDeleteConfirmModal(id) {
+      postTargetToDelete = id;
+      document.getElementById('mainWrapper').classList.add('body-blurred');
+      
+      const confirmBtn = document.getElementById('execDeleteBtn');
+      confirmBtn.onclick = async () => {
+        playConfirmSound();
+        await db.collection("posts").doc(postTargetToDelete).delete();
+        closeDeleteModal();
+      };
+
+      document.getElementById('deleteConfirmModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('mainWrapper').classList.remove('body-blurred');
+      document.getElementById('deleteConfirmModal').style.display = 'none';
+      postTargetToDelete = null;
+    }
+
+    function closePostModal() { document.getElementById('postModal').style.display = 'none'; }
+    function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+  </script>
+</body>
+</html>
