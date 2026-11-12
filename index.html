@@ -105,7 +105,6 @@
     }
     .app-splash-screen.fade-out { opacity: 0; }
 
-    /* 画像にピッタリの比率と配置（幅260px × 高さ90px） */
     .splash-box {
       width: 260px; height: 90px; position: relative;
       display: flex; justify-content: center; align-items: center;
@@ -115,23 +114,20 @@
       width: 100%; height: 100%; position: absolute; top: 0; left: 0;
     }
 
-    /* 画像通りの完璧な角丸フキダシ（反時計回り描画） */
     .splash-speech-path {
       stroke: var(--logo-color); stroke-width: 4; fill: none;
       stroke-dasharray: 600; stroke-dashoffset: 600; stroke-linecap: round; stroke-linejoin: round;
       animation: speechDraw 1.3s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s forwards;
     }
 
-    /* フキダシ四角形の中央高さ（y=33）に完璧に一致させた文字配置 */
     .splash-title {
       font-size: 1.5rem; font-weight: 700; color: var(--logo-color);
       letter-spacing: 0.12em; opacity: 0; transform: scale(0.95);
       animation: softFadeIn 0.45s ease-out 1.35s forwards;
       z-index: 2;
-      /* 四角部分の真ん中に置くための上下オフセット微調整 */
       transform-origin: center center;
       margin-top: -14px;
-      margin-left: 3px; /* 文字間隔の分だけ微妙に中央寄せ */
+      margin-left: 3px;
     }
 
     @keyframes speechDraw {
@@ -142,6 +138,36 @@
     @keyframes softFadeIn {
       0% { opacity: 0; transform: scale(0.95); }
       100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* --- 読み込み中表示（薄い色・小さめスピナー） --- */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 0;
+      gap: 10px;
+      opacity: 0.65;
+    }
+
+    .loading-spinner {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--navy-border);
+      border-top-color: var(--text-sub);
+      border-radius: 50%;
+      animation: spinLoader 0.9s linear infinite;
+    }
+
+    .loading-text {
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      letter-spacing: 0.06em;
+    }
+
+    @keyframes spinLoader {
+      to { transform: rotate(360deg); }
     }
 
     /* メンテナンス画面 */
@@ -463,7 +489,6 @@
   <!-- 起動時のオープニング -->
   <div class="app-splash-screen" id="appSplashScreen">
     <div class="splash-box">
-      <!-- 画面の真ん中に画像通りのフキダシ ＆ 反時計回りアニメーション -->
       <svg class="splash-speech-svg" viewBox="0 0 260 90">
         <path class="splash-speech-path" d="M 46 80 L 58 66 L 24 66 A 16 16 0 0 1 8 50 L 8 22 A 16 16 0 0 1 24 6 L 236 6 A 16 16 0 0 1 252 22 L 252 50 A 16 16 0 0 1 236 66 L 76 66 Z" />
       </svg>
@@ -519,8 +544,19 @@
       </div>
     </div>
 
-    <div class="view-section" id="timelineView"></div>
-    <div class="view-section" id="mypageView" style="display: none;"></div>
+    <!-- 初期状態で読み込み中を表示 -->
+    <div class="view-section" id="timelineView">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">読み込み中</div>
+      </div>
+    </div>
+    <div class="view-section" id="mypageView" style="display: none;">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">読み込み中</div>
+      </div>
+    </div>
   </div>
 
   <!-- FAB アクションエリア -->
@@ -685,6 +721,7 @@
 
     let currentUserName = localStorage.getItem('hitorigoto_user_name') || "";
     let postsData = [];
+    let isPostsLoaded = false;
     let myStampsMap = JSON.parse(localStorage.getItem('hitorigoto_my_stamps') || '{}');
     let myReportedPostsMap = JSON.parse(localStorage.getItem('hitorigoto_my_reports') || '{}');
     let isAdmin = false;
@@ -941,7 +978,6 @@
         document.getElementById('darkModeToggle').checked = true;
       }
 
-      // 0.5s待機 + 1.3s描画 + 0.45s文字 + 1.3sの完成余韻 ➔ 計 3.1秒後にフェードアウト
       setTimeout(() => {
         const splash = document.getElementById('appSplashScreen');
         if (splash) {
@@ -1162,6 +1198,7 @@
           snapshot.forEach((doc) => {
             postsData.push({ id: doc.id, ...doc.data() });
           });
+          isPostsLoaded = true;
           renderPosts();
           if (document.getElementById('adminModal').style.display === 'flex') {
             openAdminModal();
@@ -1222,6 +1259,19 @@
     function renderPosts() {
       const timelineView = document.getElementById('timelineView');
       const mypageView = document.getElementById('mypageView');
+
+      if (!isPostsLoaded) {
+        const loaderHtml = `
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">読み込み中</div>
+          </div>
+        `;
+        timelineView.innerHTML = loaderHtml;
+        mypageView.innerHTML = loaderHtml;
+        return;
+      }
+
       timelineView.innerHTML = ''; mypageView.innerHTML = '';
 
       const searchRaw = document.getElementById('searchInput').value;
