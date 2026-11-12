@@ -11,6 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
+    /* --- 通常モード --- */
     :root {
       --bg-main: #faf8f9;
       --bg-sub: #f3eff2;
@@ -23,21 +24,65 @@
       --pink-bg: #fcf2f4;
       --pink-border: #ebd0d6;
 
-      /* 主張を抑えた上品なくすみ水色 */
       --active-kusumi-bg: #e2eafd;
       --active-kusumi-border: #9bb0c1;
-      --active-kusumi-text: #516e89;
+      --active-kusumi-text: #1e293b;
 
       --text-main: #0f172a;
       --text-sub: #64748b;
+      --placeholder-color: #94a3b8;
 
       --card-bg: #ffffff;
       --modal-bg: #ffffff;
       --input-bg: #faf8f9;
+      --header-bg: rgba(250, 248, 249, 0.92);
+
+      --icon-sub-color: #94a3b8;
+      --stamp-default-bg: #f8fafc;
+      --stamp-default-border: #e2e8f0;
+
+      --logo-color: #2c3e50;
+    }
+
+    /* --- ダークモード --- */
+    body.dark-mode {
+      --bg-main: #090e1a; 
+      --bg-sub: #111827; 
+      --navy-main: #b8e6f5; 
+      --navy-hover: #d0f0fa;
+      --navy-light: #152033;
+      --navy-border: #1e2d42;
+
+      --pink-soft: #e8a5b8;
+      --pink-bg: #18131d;
+      --pink-border: #dcb3be;
+
+      --active-kusumi-bg: #271827;
+      --active-kusumi-border: #e8a5b8;
+      --active-kusumi-text: #fbe8ee;
+
+      --text-main: #ffffff;
+      --text-sub: #aee0ef;
+      --placeholder-color: #aee0ef;
+
+      --card-bg: #111a2b;
+      --modal-bg: #111a2b;
+      --input-bg: #090e1a;
+      --header-bg: rgba(9, 14, 26, 0.92);
+
+      --icon-sub-color: #aee0ef;
+      --stamp-default-bg: #0d1424;
+      --stamp-default-border: #1a2538;
+
+      --logo-color: #ffffff;
     }
 
     * { box-sizing: border-box; }
     html { scrollbar-gutter: stable; }
+
+    body.modal-open {
+      overflow: hidden !important;
+    }
 
     body {
       font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -46,6 +91,65 @@
       margin: 0; padding: 0;
       display: flex; flex-direction: column; align-items: center;
       min-height: 100vh; overflow-x: hidden; position: relative;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    ::placeholder { color: var(--placeholder-color) !important; opacity: 0.8; }
+
+    /* --- 起動時のオープニング --- */
+    .app-splash-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--bg-main); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 1000;
+      transition: opacity 0.5s ease; pointer-events: none;
+    }
+    .app-splash-screen.fade-out { opacity: 0; }
+
+    /* 画像にピッタリの比率と配置（幅260px × 高さ90px） */
+    .splash-box {
+      width: 260px; height: 90px; position: relative;
+      display: flex; justify-content: center; align-items: center;
+    }
+
+    .splash-speech-svg {
+      width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+    }
+
+    /* 画像通りの完璧な角丸フキダシ（反時計回り描画） */
+    .splash-speech-path {
+      stroke: var(--logo-color); stroke-width: 4; fill: none;
+      stroke-dasharray: 600; stroke-dashoffset: 600; stroke-linecap: round; stroke-linejoin: round;
+      animation: speechDraw 1.3s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s forwards;
+    }
+
+    /* フキダシ四角形の中央高さ（y=33）に完璧に一致させた文字配置 */
+    .splash-title {
+      font-size: 1.5rem; font-weight: 700; color: var(--logo-color);
+      letter-spacing: 0.12em; opacity: 0; transform: scale(0.95);
+      animation: softFadeIn 0.45s ease-out 1.35s forwards;
+      z-index: 2;
+      /* 四角部分の真ん中に置くための上下オフセット微調整 */
+      transform-origin: center center;
+      margin-top: -14px;
+      margin-left: 3px; /* 文字間隔の分だけ微妙に中央寄せ */
+    }
+
+    @keyframes speechDraw {
+      0% { stroke-dashoffset: 600; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes softFadeIn {
+      0% { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* メンテナンス画面 */
+    .maint-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--bg-main); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 900;
+      color: var(--text-main); text-align: center; padding: 20px;
     }
 
     .blur-wrapper {
@@ -57,18 +161,19 @@
     .fixed-top-area {
       position: sticky; top: 0; z-index: 50;
       width: 100%; max-width: 500px;
-      background: rgba(250, 248, 249, 0.92);
+      background: var(--header-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border-bottom: 2px solid var(--navy-main);
+      border-bottom: 2px solid var(--logo-color);
       padding: 12px 18px;
       display: flex; flex-direction: column; gap: 10px;
+      transition: background-color 0.25s ease;
     }
 
     .header-top-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 
     h1 {
-      font-size: 1.38rem; font-weight: 700; color: var(--navy-main); margin: 0;
+      font-size: 1.38rem; font-weight: 700; color: var(--logo-color); margin: 0;
       letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;
     }
 
@@ -76,22 +181,49 @@
 
     .user-badge {
       background: var(--pink-bg); padding: 4px 8px; border-radius: 6px;
-      font-size: 0.72rem; font-weight: 600; color: var(--navy-main);
-      border: 1px solid var(--pink-border); cursor: pointer;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-main);
+      border: 1.5px solid var(--pink-border); cursor: pointer;
       transition: all 0.12s ease; white-space: nowrap;
     }
     .user-badge:hover { border-color: var(--pink-soft); }
 
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+
     .omamori-btn {
       background: var(--navy-main); border: none; color: #ffffff;
-      border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; font-weight: 600;
-      cursor: pointer; font-family: inherit; transition: all 0.12s ease; width: fit-content;
+      border-radius: 6px; padding: 0 10px; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.12s ease;
+      height: 28px; display: inline-flex; align-items: center; justify-content: center;
     }
+    body.dark-mode .omamori-btn { color: #090e1a; font-weight: 700; }
     .omamori-btn:hover { opacity: 0.9; }
     .omamori-btn.done { background: #94a3b8 !important; color: #ffffff !important; border: none !important; }
 
+    .icon-btn {
+      background: transparent; border: 1px solid var(--navy-border); color: var(--icon-sub-color);
+      border-radius: 6px; width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.12s ease; padding: 0;
+    }
+    .icon-btn:hover { border-color: var(--navy-main); color: var(--navy-main); }
+    .icon-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+    .filter-container {
+      display: flex; gap: 8px; width: 100%;
+    }
+    .search-input {
+      flex: 1; background: var(--input-bg); border: 1px solid var(--navy-border);
+      color: var(--text-main); padding: 6px 10px; border-radius: 6px;
+      font-size: 0.75rem; font-family: inherit; outline: none;
+    }
+    .sort-select {
+      background: var(--input-bg); border: 1px solid var(--navy-border);
+      color: var(--text-main); padding: 6px 8px; border-radius: 6px;
+      font-size: 0.75rem; font-family: inherit; outline: none; cursor: pointer;
+    }
+
     .tab-nav {
-      display: flex; width: 100%; background: #e2e8f0;
+      display: flex; width: 100%; background: var(--navy-light);
       border-radius: 8px; padding: 3px; border: 1px solid var(--navy-border);
     }
 
@@ -104,51 +236,69 @@
 
     .tab-btn.active {
       background: var(--navy-main); color: #ffffff;
-      box-shadow: 0 2px 4px rgba(44, 62, 80, 0.15);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
+    body.dark-mode .tab-btn.active { color: #090e1a; }
 
     .view-section {
-      width: 100%; max-width: 500px; padding: 20px 16px 100px 16px;
+      width: 100%; max-width: 500px; padding: 16px 16px 100px 16px;
       display: flex; flex-direction: column; gap: 14px;
     }
 
     .card {
       background: var(--card-bg); padding: 18px 20px; border-radius: 12px;
-      border: 1.5px solid var(--pink-border); position: relative; transition: opacity 0.12s ease, transform 0.12s ease;
-      box-shadow: 0 2px 8px rgba(200, 138, 153, 0.05);
+      border: 1.5px solid var(--pink-border); position: relative; transition: all 0.12s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
 
-    .card.my-post { border: 2px solid var(--navy-main); background: #ffffff; }
+    .card.my-post { border: 2px solid var(--navy-main); }
 
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .author-name { font-size: 0.8rem; font-weight: 700; color: var(--navy-main); letter-spacing: 0.02em; }
-    .post-time { font-size: 0.68rem; color: #94a3b8; font-weight: 500; }
+    .post-time { font-size: 0.68rem; color: var(--text-sub); font-weight: 500; }
     
     .delete-btn { background: none; border: none; color: var(--pink-soft); font-size: 0.72rem; font-weight: 600; cursor: pointer; padding: 2px 4px; font-family: inherit; }
     .delete-btn:hover { text-decoration: underline; }
 
+    .menu-container { position: relative; }
+    .more-btn {
+      background: none; border: none; color: var(--text-sub);
+      font-size: 1.1rem; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    .more-menu {
+      position: absolute; right: 0; top: 100%; background: var(--modal-bg);
+      border: 1px solid var(--navy-border); border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; z-index: 10;
+    }
+    .more-menu.show { display: block; }
+    .more-menu-item {
+      padding: 6px 12px; font-size: 0.75rem; color: var(--pink-soft);
+      cursor: pointer; white-space: nowrap; font-weight: 600;
+    }
+    .more-menu-item:hover { background: var(--bg-sub); }
+
     .card-text { font-size: 0.92rem; line-height: 1.6; color: var(--text-main); margin-bottom: 14px; white-space: pre-wrap; font-weight: 400; }
 
-    .stamp-container { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+    .stamp-container { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid var(--navy-border); padding-top: 12px; }
     
     .stamp-btn {
-      background: var(--bg-main); border: 1px solid var(--navy-border);
+      background: var(--stamp-default-bg); border: 1px solid var(--stamp-default-border);
       border-radius: 8px; padding: 7px 10px; font-size: 0.76rem; font-family: inherit;
       color: var(--text-main); cursor: pointer; display: flex; align-items: center;
-      justify-content: space-between; transition: all 0.15s ease; font-weight: 500;
+      justify-content: space-between; transition: all 0.15s ease; font-weight: 400;
     }
 
     .stamp-btn.active {
       border-color: var(--active-kusumi-border);
       background: var(--active-kusumi-bg);
       color: var(--active-kusumi-text);
-      font-weight: 700;
+      font-weight: 400;
     }
 
     .blank-pop-screen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #ffffff; display: flex; justify-content: center; align-items: center; z-index: 300;
+      background: var(--card-bg); display: flex; justify-content: center; align-items: center; z-index: 300;
     }
 
     .ecg-container {
@@ -176,11 +326,19 @@
       100% { transform: scale(1); }
     }
 
-    /* FAB & 誘導フキダシ */
+    /* 右下固定アクションエリア */
     .fab-fixed-container {
       position: fixed; bottom: 24px; right: max(20px, calc(50vw - 230px)); z-index: 40;
-      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
     }
+
+    .admin-fab-btn {
+      background: var(--pink-soft); color: #ffffff; border: none;
+      padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      transition: transform 0.12s ease; display: flex; align-items: center; gap: 4px;
+    }
+    .admin-fab-btn:hover { transform: scale(1.05); }
 
     .fab-tooltip {
       background: var(--navy-main); color: #ffffff; font-size: 0.72rem; font-weight: 600;
@@ -188,6 +346,7 @@
       position: relative; white-space: nowrap; animation: bounceTooltip 2s infinite ease-in-out;
       transition: opacity 0.2s ease;
     }
+    body.dark-mode .fab-tooltip { color: #090e1a; }
     .fab-tooltip::after {
       content: ''; position: absolute; bottom: -5px; right: 20px;
       width: 0; height: 0;
@@ -204,22 +363,24 @@
       width: 54px; height: 54px; background: var(--navy-main);
       border-radius: 50%; cursor: pointer; border: none; position: relative;
       transition: transform 0.12s ease, background-color 0.12s ease;
-      box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     }
     .fab::before, .fab::after {
       content: ''; position: absolute; top: 50%; left: 50%; background-color: #ffffff;
       border-radius: 2px; transform: translate(-50%, -50%);
     }
+    body.dark-mode .fab::before, body.dark-mode .fab::after { background-color: #090e1a; }
     .fab::before { width: 2px; height: 20px; }
     .fab::after { width: 20px; height: 2px; }
-    .fab:hover { background-color: var(--navy-hover); }
+    .fab:hover { opacity: 0.9; }
     .fab:active { transform: scale(0.92); }
 
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.35); backdrop-filter: blur(3px);
+      background: rgba(9, 14, 26, 0.5); backdrop-filter: blur(3px);
       display: flex; justify-content: center; align-items: center; z-index: 100;
       animation: modalQuickFade 0.12s ease-out forwards;
+      overscroll-behavior: contain;
     }
 
     @keyframes modalQuickFade { from { opacity: 0; } to { opacity: 1; } }
@@ -227,7 +388,8 @@
     .modal-content {
       background: var(--modal-bg); padding: 24px 20px; border-radius: 14px;
       width: 90%; max-width: 380px; border: 2px solid var(--navy-main);
-      position: relative; margin: auto; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      position: relative; margin: auto; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      max-height: 85vh; overflow-y: auto; color: var(--text-main);
     }
 
     .textarea-wrapper { position: relative; width: 100%; margin-top: 10px; }
@@ -242,7 +404,7 @@
 
     .char-counter {
       position: absolute; right: 10px; bottom: 8px;
-      font-size: 0.72rem; font-weight: 600; color: #94a3b8; pointer-events: none; transition: color 0.1s ease;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-sub); pointer-events: none; transition: color 0.1s ease;
     }
     .char-counter.limit { color: var(--pink-soft); font-weight: 700; }
 
@@ -252,9 +414,10 @@
       width: 100%; background: var(--navy-main); color: #ffffff;
       border: none; padding: 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
       font-family: inherit; cursor: pointer; margin-top: 6px; letter-spacing: 0.05em;
-      transition: background-color 0.12s ease;
+      transition: opacity 0.12s ease;
     }
-    .btn-main:hover { background-color: var(--navy-hover); }
+    body.dark-mode .btn-main { color: #090e1a; }
+    .btn-main:hover { opacity: 0.9; }
 
     .btn-danger {
       width: 100%; background: var(--pink-soft); color: #ffffff;
@@ -263,15 +426,66 @@
     }
 
     .btn-secondary {
-      width: 100%; background: #f1f5f9; color: var(--navy-main);
+      width: 100%; background: var(--bg-sub); color: var(--text-main);
       border: 1px solid var(--navy-border); padding: 10px; border-radius: 8px;
       font-size: 0.8rem; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 8px;
     }
 
+    .btn-subtle {
+      background: var(--bg-sub); color: var(--text-sub); border: 1px solid var(--navy-border);
+      padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; transition: all 0.12s ease; font-family: inherit;
+    }
+    .btn-subtle:hover { color: var(--text-main); border-color: var(--navy-main); }
+
     .close-btn { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.1rem; color: var(--text-sub); cursor: pointer; }
+
+    .setting-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--navy-border);
+      font-size: 0.82rem; font-weight: 600;
+    }
+
+    .admin-hidden-badge {
+      background: var(--pink-soft); color: #ffffff; font-size: 0.65rem;
+      padding: 2px 6px; border-radius: 4px; font-weight: bold;
+    }
+
+    .admin-report-badge {
+      background: var(--bg-sub); color: var(--text-main); font-size: 0.65rem;
+      padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid var(--navy-border);
+    }
   </style>
 </head>
+
 <body>
+
+  <!-- 起動時のオープニング -->
+  <div class="app-splash-screen" id="appSplashScreen">
+    <div class="splash-box">
+      <!-- 画面の真ん中に画像通りのフキダシ ＆ 反時計回りアニメーション -->
+      <svg class="splash-speech-svg" viewBox="0 0 260 90">
+        <path class="splash-speech-path" d="M 46 80 L 58 66 L 24 66 A 16 16 0 0 1 8 50 L 8 22 A 16 16 0 0 1 24 6 L 236 6 A 16 16 0 0 1 252 22 L 252 50 A 16 16 0 0 1 236 66 L 76 66 Z" />
+      </svg>
+      <div class="splash-title">HITORIGOTO</div>
+    </div>
+  </div>
+
+  <!-- メンテナンス画面 -->
+  <div class="maint-screen" id="maintScreen" style="display:none;">
+    <div style="width:120px; height:60px; margin-bottom:20px;">
+      <svg viewBox="0 0 130 60" style="width:100%; height:100%;">
+        <path class="ecg-path" style="animation: ecgDraw 2s infinite ease-in-out;" d="M 0 30 L 40 30 L 52 10 L 65 50 L 78 18 L 88 30 L 130 30" />
+      </svg>
+    </div>
+    <h2 style="font-size:1.2rem; margin-bottom:8px; color:var(--navy-main);">ただいまメンテナンス中です</h2>
+    <p style="font-size:0.8rem; color:var(--text-sub); margin:0;">しばらく経ってから再度お試しください✨</p>
+
+    <div style="position:fixed; bottom:16px; right:16px; display:flex; gap:6px; opacity:0.6;">
+      <input type="password" id="maintPassInput" placeholder="Pass" style="width:70px; padding:4px; font-size:0.7rem; border:1px solid var(--navy-border); border-radius:4px; background:var(--input-bg); color:var(--text-main);">
+      <button class="btn-subtle" style="padding:4px 8px; font-size:0.7rem;" onclick="unlockMaintDirect()">解除</button>
+    </div>
+  </div>
 
   <div class="blur-wrapper" id="mainWrapper">
     <div class="fixed-top-area">
@@ -279,10 +493,26 @@
         <h1>HITORIGOTO</h1>
         <div class="user-column">
           <div class="user-badge" onclick="openNameModal(false);" id="currentUserBadge">---</div>
-          <button class="omamori-btn" id="headerOmamoriBtn" onclick="openOmamoriModal();">Lucky Charm</button>
+          <div class="header-actions">
+            <button class="omamori-btn" id="headerOmamoriBtn" onclick="openOmamoriModal();">Lucky Charm</button>
+            <button class="icon-btn" onclick="openSettingsModal();" title="設定">
+              <svg viewBox="0 0 24 24">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       
+      <!-- 検索＆ソート -->
+      <div class="filter-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="投稿を検索..." oninput="renderPosts()">
+        <select class="sort-select" id="sortSelect" onchange="renderPosts()">
+          <option value="new">新着順</option>
+          <option value="stamps">リアクション順</option>
+        </select>
+      </div>
+
       <div class="tab-nav">
         <button class="tab-btn active" id="tabTimeline" onclick="switchTab('timeline');">TIMELINE</button>
         <button class="tab-btn" id="tabMypage" onclick="switchTab('mypage');">MY POSTS</button>
@@ -293,10 +523,80 @@
     <div class="view-section" id="mypageView" style="display: none;"></div>
   </div>
 
-  <!-- 右下FABボタン＆誘導フキダシ -->
+  <!-- FAB アクションエリア -->
   <div class="fab-fixed-container">
+    <button class="admin-fab-btn" id="adminFabBtn" style="display:none;" onclick="openAdminModal();">⚙️ ADMIN</button>
     <div class="fab-tooltip" id="fabTooltip">ここから独り言をつぶやいてみよう！</div>
     <button class="fab" onclick="openPostModal();"></button>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="modal-overlay" id="settingsModal" style="display:none;">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeSettingsModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; letter-spacing:0.08em; font-size:1.05rem; text-align:center;">SETTINGS</h3>
+      
+      <div class="setting-row">
+        <span>ダークモード</span>
+        <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode(this.checked)">
+      </div>
+
+      <div class="setting-row">
+        <span>効果音 (SE)</span>
+        <input type="checkbox" id="soundToggle" onchange="toggleSound(this.checked)" checked>
+      </div>
+
+      <div class="setting-row" style="flex-direction:column; align-items:flex-start; gap:6px;">
+        <span>音量調節</span>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.5" style="width:100%;" onchange="setVolume(this.value)">
+      </div>
+
+      <button class="btn-secondary" onclick="openHelpModal();" style="margin-top:14px;">📖 使い方・ルール表示</button>
+
+      <div style="margin-top:20px; border-top:1px dashed var(--navy-border); padding-top:14px; text-align:center;">
+        <span style="font-size:0.7rem; color:var(--text-sub);">管理者エリア</span>
+        <div style="display:flex; gap:6px; margin-top:6px; justify-content:center;">
+          <input type="password" id="adminPassInput" placeholder="管理者パスワード" style="width:140px; padding:6px; font-size:0.75rem; border:1px solid var(--navy-border); border-radius:6px; background:var(--input-bg); color:var(--text-main);">
+          <button class="btn-subtle" onclick="loginAdmin()">認証</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使い方モーダル -->
+  <div class="modal-overlay" id="helpModal" style="display:none;">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeHelpModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; font-size:1rem; text-align:center;">HITORIGOTO の使い方</h3>
+      
+      <div style="font-size:0.78rem; line-height:1.6; color:var(--text-main);">
+        <p><b>1. 投稿（つぶやき）</b><br>右下の <b>＋</b> ボタンから140文字まで投稿できます。<br>※自分が投稿した内容は <b>DELETE</b> ボタンから削除できます。</p>
+        <p><b>2. リアクション</b><br>投稿の下にあるボタンを押して共感を伝えられます。</p>
+        <p><b>3. 検索機能</b><br>上の検索窓から気になる言葉を検索できます。ひらがな・カタカナ・全角半角に対応！</p>
+        <p><b>4. 通報機能</b><br>不適切な投稿は、投稿の右上にある <b>⋮</b> ➔ <b>通報</b> から管理者に報告できます。</p>
+        <p><b>5. 名前ルーレット</b><br>右上の名前を押すと新しい名前に変更できます（過去の投稿も一括更新されます）。</p>
+        <p><b>6. Lucky Charm</b><br>1日1回「今日のおみくじ」が引けます。</p>
+        <p style="color:var(--pink-soft); font-weight:bold; margin-top:10px;">⚠️ 個人情報は絶対に書かないでね！みんなで優しく使おう！</p>
+      </div>
+      <button class="btn-main" onclick="closeHelpModal();">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 管理者用モーダル -->
+  <div class="modal-overlay" id="adminModal" style="display:none;">
+    <div class="modal-content" style="max-width:440px;">
+      <button class="close-btn" onclick="closeAdminModal();">✕</button>
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; font-size:1rem; text-align:center;">管理者管理パネル</h3>
+      
+      <div class="setting-row" style="margin-bottom:12px; background:var(--bg-sub); padding:10px; border-radius:8px;">
+        <span>🛠️ メンテナンスモード</span>
+        <input type="checkbox" id="maintToggle" onchange="toggleMaintenanceMode(this.checked)">
+      </div>
+
+      <div id="adminReportList" style="font-size:0.78rem; max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+
+      <button class="btn-secondary" style="margin-top:16px; color:var(--pink-soft);" onclick="logoutAdmin()">管理者モードを終了</button>
+    </div>
   </div>
 
   <!-- おみくじモーダル -->
@@ -304,14 +604,14 @@
     <div class="modal-content" style="text-align: center;">
       <button class="close-btn" onclick="closeOmamoriModal();">✕</button>
       <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; letter-spacing:0.08em; font-size:1.05rem;">LUCKY CHARM</h3>
-      <div id="omamoriTextDisplay" style="font-size:0.88rem; line-height:1.6; color:var(--text-main); padding:16px 14px; background:var(--pink-bg); border-radius:8px; margin:14px 0; border:1px solid var(--pink-border); min-height:80px; display:flex; align-items:center; justify-content:center; text-align:left;">
+      <div id="omamoriTextDisplay" style="font-size:0.88rem; line-height:1.6; color:var(--text-main); padding:16px 14px; background:var(--pink-bg); border-radius:8px; margin:14px 0; border:1.5px solid var(--pink-border); min-height:80px; display:flex; align-items:center; justify-content:center; text-align:left;">
         今日のおみくじを引く
       </div>
       <button class="btn-main" id="drawOmamoriBtn" onclick="drawOmamori()">DRAW</button>
     </div>
   </div>
 
-  <!-- 名前決定・ウェルカムモーダル -->
+  <!-- 名前決定モーダル -->
   <div class="modal-overlay" id="nameModal" style="display:none;">
     <div class="modal-content" style="text-align: center;">
       <button class="close-btn" id="nameModalCloseBtn" onclick="closeNameModal();">✕</button>
@@ -323,7 +623,7 @@
         まずはルーレットであなただけの名前を決めよう✨
       </div>
 
-      <div id="rouletteDisplay" style="font-size:1rem; color:var(--navy-main); padding:14px; background:var(--pink-bg); border-radius:8px; margin:10px 0 14px 0; border:1px solid var(--pink-border); font-weight:700;">---</div>
+      <div id="rouletteDisplay" style="font-size:1rem; color:var(--navy-main); padding:14px; background:var(--pink-bg); border-radius:8px; margin:10px 0 14px 0; border:1.5px solid var(--pink-border); font-weight:700;">---</div>
       <button class="btn-main" id="startBtn" onclick="runRoulette()">GENERATE</button>
       <button class="btn-secondary" id="confirmBtn" style="display:none;" onclick="confirmName()">SET NAME</button>
     </div>
@@ -353,10 +653,18 @@
     </div>
   </div>
 
+  <!-- 通報確認モーダル -->
+  <div class="modal-overlay" id="reportConfirmModal" style="display: none;">
+    <div class="modal-content" style="text-align: center;">
+      <h3 style="color:var(--navy-main); margin-top:0; font-weight:700; font-size:1rem;">この投稿を通報しますか？</h3>
+      <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:18px;">管理者に報告されます。</p>
+      <button class="btn-danger" id="execReportBtn">通報する</button>
+      <button class="btn-secondary" onclick="closeReportModal();">キャンセル</button>
+    </div>
+  </div>
+
   <script>
-    // -------------------------------------------------------------
-    // Firebase設定
-    // -------------------------------------------------------------
+    // --- Firebase設定 ---
     const firebaseConfig = {
       apiKey: "AIzaSyD550aqrZtUc2z7bAm67erodMDQ6...", 
       authDomain: "hitorigoto-8981c.firebaseapp.com",
@@ -369,7 +677,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // --- 0. 固有ユーザーID & ユーザー名管理 ---
     let myUserId = localStorage.getItem('hitorigoto_user_id');
     if (!myUserId) {
       myUserId = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -378,21 +685,60 @@
 
     let currentUserName = localStorage.getItem('hitorigoto_user_name') || "";
     let postsData = [];
-
     let myStampsMap = JSON.parse(localStorage.getItem('hitorigoto_my_stamps') || '{}');
+    let myReportedPostsMap = JSON.parse(localStorage.getItem('hitorigoto_my_reports') || '{}');
+    let isAdmin = false;
+    let isMaintenanceMode = false;
 
-    function saveMyStampsMap() {
-      localStorage.setItem('hitorigoto_my_stamps', JSON.stringify(myStampsMap));
+    let soundEnabled = localStorage.getItem('hitorigoto_sound') !== 'false';
+    let globalVolume = parseFloat(localStorage.getItem('hitorigoto_volume') || '0.5');
+
+    function saveMyStampsMap() { localStorage.setItem('hitorigoto_my_stamps', JSON.stringify(myStampsMap)); }
+    function saveMyReportsMap() { localStorage.setItem('hitorigoto_my_reports', JSON.stringify(myReportedPostsMap)); }
+
+    let openModalsCount = 0;
+    function updateModalScrollLock() {
+      if (openModalsCount > 0) document.body.classList.add('modal-open');
+      else document.body.classList.remove('modal-open');
+    }
+    function trackModalOpen(id) {
+      const el = document.getElementById(id);
+      if (el && el.style.display !== 'none') { openModalsCount++; updateModalScrollLock(); }
+    }
+    function trackModalClose(id) {
+      const el = document.getElementById(id);
+      if (el && el.style.display !== 'none') { openModalsCount = Math.max(0, openModalsCount - 1); updateModalScrollLock(); }
     }
 
-    // --- 1. Web Audio API ---
+    function toggleDarkMode(isDark) {
+      if (isDark) {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('hitorigoto_dark_mode', 'true');
+      } else {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('hitorigoto_dark_mode', 'false');
+      }
+    }
+
+    function toggleSound(enabled) {
+      soundEnabled = enabled;
+      localStorage.setItem('hitorigoto_sound', enabled ? 'true' : 'false');
+    }
+    function setVolume(val) {
+      globalVolume = parseFloat(val);
+      localStorage.setItem('hitorigoto_volume', val);
+    }
+
     let audioCtx = null;
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
+    window.addEventListener('click', () => { initAudio(); }, { once: true });
+
     function playCuteSignalSound() {
+      if (!soundEnabled) return;
       try {
         initAudio();
         const t = audioCtx.currentTime;
@@ -403,23 +749,22 @@
         osc1.type = 'sine'; osc2.type = 'triangle';
         osc1.frequency.setValueAtTime(1396.91, t);
         osc1.frequency.setValueAtTime(2093.00, t + 0.06);
-
         osc2.frequency.setValueAtTime(2093.00, t);
         osc2.frequency.setValueAtTime(2793.83, t + 0.06);
 
-        gain.gain.setValueAtTime(0.12, t);
-        gain.gain.setValueAtTime(0.18, t + 0.06);
+        gain.gain.setValueAtTime(0.12 * globalVolume, t);
+        gain.gain.setValueAtTime(0.18 * globalVolume, t + 0.06);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
 
         osc1.connect(gain); osc2.connect(gain);
         gain.connect(audioCtx.destination);
-
         osc1.start(t); osc2.start(t);
         osc1.stop(t + 0.22); osc2.stop(t + 0.22);
       } catch (e) {}
     }
 
     function playChimeSound() {
+      if (!soundEnabled) return;
       try {
         initAudio();
         const t = audioCtx.currentTime;
@@ -431,18 +776,18 @@
         osc1.frequency.setValueAtTime(1046.5, t);
         osc2.frequency.setValueAtTime(1318.51, t + 0.04);
 
-        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.setValueAtTime(0.15 * globalVolume, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
 
         osc1.connect(gain); osc2.connect(gain);
         gain.connect(audioCtx.destination);
-
         osc1.start(t); osc1.stop(t + 0.4);
         osc2.start(t + 0.04); osc2.stop(t + 0.4);
       } catch (e) {}
     }
 
     function playPhoneCallClick() {
+      if (!soundEnabled) return;
       try {
         initAudio();
         const t = audioCtx.currentTime;
@@ -454,18 +799,18 @@
         osc1.frequency.setValueAtTime(2400, t);
         osc2.frequency.setValueAtTime(2800, t);
 
-        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.setValueAtTime(0.06 * globalVolume, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
 
         osc1.connect(gain); osc2.connect(gain);
         gain.connect(audioCtx.destination);
-
         osc1.start(t); osc2.start(t);
         osc1.stop(t + 0.025); osc2.stop(t + 0.025);
       } catch (e) {}
     }
 
     function playConfirmSound() {
+      if (!soundEnabled) return;
       try {
         initAudio();
         const t = audioCtx.currentTime;
@@ -477,18 +822,17 @@
         osc1.frequency.setValueAtTime(880, t);
         osc2.frequency.setValueAtTime(1318.51, t + 0.03);
 
-        gain.gain.setValueAtTime(0.176, t);
+        gain.gain.setValueAtTime(0.176 * globalVolume, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
         osc1.connect(gain); osc2.connect(gain);
         gain.connect(audioCtx.destination);
-
         osc1.start(t); osc1.stop(t + 0.25);
         osc2.start(t + 0.03); osc2.stop(t + 0.25);
       } catch (e) {}
     }
 
-    // --- 2. おみくじ機能 ---
+    // --- おみくじ機能 ---
     const luckRanks = ["【超大吉】", "【大吉】", "【中吉】", "【小吉】", "【吉】", "【末吉】", "【平】", "【微吉】", "【隠れ大吉】"];
     const messages = [
       "今日はなんだか全部うまくいく予感。思い切って一歩踏み出してみて。",
@@ -522,11 +866,8 @@
       const today = new Date().toDateString();
       const lastDate = localStorage.getItem('omamori_date');
       const headerBtn = document.getElementById('headerOmamoriBtn');
-      if (lastDate === today) {
-        headerBtn.classList.add('done');
-      } else {
-        headerBtn.classList.remove('done');
-      }
+      if (lastDate === today) headerBtn.classList.add('done');
+      else headerBtn.classList.remove('done');
     }
 
     function openOmamoriModal() {
@@ -544,10 +885,14 @@
         drawBtn.style.display = 'block';
         drawBtn.textContent = 'DRAW';
       }
+      trackModalOpen('omamoriModal');
       document.getElementById('omamoriModal').style.display = 'flex';
     }
 
-    function closeOmamoriModal() { document.getElementById('omamoriModal').style.display = 'none'; }
+    function closeOmamoriModal() {
+      trackModalClose('omamoriModal');
+      document.getElementById('omamoriModal').style.display = 'none';
+    }
 
     function drawOmamori() {
       const today = new Date().toDateString();
@@ -555,15 +900,13 @@
       localStorage.setItem('omamori_date', today);
       localStorage.setItem('omamori_word', resultText);
 
-      const display = document.getElementById('omamoriTextDisplay');
-      const drawBtn = document.getElementById('drawOmamoriBtn');
-      display.innerText = resultText;
-      drawBtn.style.display = 'none';
+      document.getElementById('omamoriTextDisplay').innerText = resultText;
+      document.getElementById('drawOmamoriBtn').style.display = 'none';
       checkOmamoriStatus();
       playChimeSound();
     }
 
-    // --- 3. 名前生成システム（50×50＝2500パターン） ---
+    // --- 名前生成 ---
     const prefixList = [
       "寝不足の", "大食いの", "限界突破の", "布団が恋人の", "カフェイン依存の",
       "現実逃避中の", "二度寝のプロ", "思考停止した", "猫に甘い", "徳を積む",
@@ -593,26 +936,38 @@
     let tempGeneratedName = "";
 
     window.onload = () => { 
+      if (localStorage.getItem('hitorigoto_dark_mode') === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeToggle').checked = true;
+      }
+
+      // 0.5s待機 + 1.3s描画 + 0.45s文字 + 1.3sの完成余韻 ➔ 計 3.1秒後にフェードアウト
+      setTimeout(() => {
+        const splash = document.getElementById('appSplashScreen');
+        if (splash) {
+          splash.classList.add('fade-out');
+          setTimeout(() => splash.remove(), 500);
+        }
+      }, 3100);
+
+      document.getElementById('soundToggle').checked = soundEnabled;
+      document.getElementById('volumeSlider').value = globalVolume;
+
       checkOmamoriStatus();
       checkTooltipStatus();
 
-      if (!currentUserName) {
-        openNameModal(true);
-      } else {
-        document.getElementById('currentUserBadge').textContent = currentUserName;
-      }
+      if (!currentUserName) openNameModal(true);
+      else document.getElementById('currentUserBadge').textContent = currentUserName;
 
       subscribeFirestore();
+      subscribeMaintenanceMode();
     };
 
     function checkTooltipStatus() {
       const hasPosted = localStorage.getItem('hitorigoto_has_posted');
       const tooltip = document.getElementById('fabTooltip');
-      if (hasPosted === 'true') {
-        tooltip.style.display = 'none';
-      } else {
-        tooltip.style.display = 'block';
-      }
+      if (hasPosted === 'true') tooltip.style.display = 'none';
+      else tooltip.style.display = 'block';
     }
 
     function dismissTooltip() {
@@ -629,8 +984,6 @@
 
       let count = 0;
       const totalSteps = 18;
-      const constantInterval = 45;
-
       function step() {
         if (count >= totalSteps) {
           startBtn.disabled = false;
@@ -639,20 +992,17 @@
           playPhoneCallClick();
           return;
         }
-
         const p = prefixList[Math.floor(Math.random() * prefixList.length)];
         const n = nounList[Math.floor(Math.random() * nounList.length)];
         tempGeneratedName = `${p}${n}`;
         display.textContent = tempGeneratedName;
-
         playPhoneCallClick();
         count++;
-        setTimeout(step, constantInterval);
+        setTimeout(step, 45);
       }
       step();
     }
 
-    // ★名前変更時に過去の全投稿の名前も一括書き換え（リンク）
     async function confirmName() {
       playConfirmSound();
       currentUserName = tempGeneratedName; 
@@ -661,7 +1011,6 @@
 
       closeNameModal();
 
-      // 過去に投稿した自分のデータをすべて新しい名前に更新する
       try {
         const querySnapshot = await db.collection("posts").where("userId", "==", myUserId).get();
         const batch = db.batch();
@@ -669,9 +1018,7 @@
           batch.update(doc.ref, { author: currentUserName });
         });
         await batch.commit();
-      } catch (e) {
-        console.error("過去投稿の名前更新エラー:", e);
-      }
+      } catch (e) { console.error("過去投稿の名前更新エラー:", e); }
     }
 
     function openNameModal(isForced = false) { 
@@ -689,22 +1036,123 @@
 
       document.getElementById('startBtn').textContent = "GENERATE";
       document.getElementById('confirmBtn').style.display = 'none';
-
-      if (!currentUserName && !tempGeneratedName) {
-        document.getElementById('rouletteDisplay').textContent = "---";
-      } else {
-        document.getElementById('rouletteDisplay').textContent = currentUserName || tempGeneratedName;
-      }
-
+      document.getElementById('rouletteDisplay').textContent = currentUserName || tempGeneratedName || "---";
+      trackModalOpen('nameModal');
       document.getElementById('nameModal').style.display = 'flex'; 
     }
 
     function closeNameModal() { 
       document.getElementById('mainWrapper').classList.remove('body-blurred');
+      trackModalClose('nameModal');
       document.getElementById('nameModal').style.display = 'none'; 
     }
 
-    // --- 4. クラウド同期（Firestore連携） ---
+    function openSettingsModal() { trackModalOpen('settingsModal'); document.getElementById('settingsModal').style.display = 'flex'; }
+    function closeSettingsModal() { trackModalClose('settingsModal'); document.getElementById('settingsModal').style.display = 'none'; }
+    function openHelpModal() { trackModalOpen('helpModal'); document.getElementById('helpModal').style.display = 'flex'; }
+    function closeHelpModal() { trackModalClose('helpModal'); document.getElementById('helpModal').style.display = 'none'; }
+
+    function subscribeMaintenanceMode() {
+      db.collection("settings").doc("system").onSnapshot(doc => {
+        if (doc.exists) {
+          isMaintenanceMode = doc.data().maintenance || false;
+          updateMaintenanceDisplay();
+        }
+      });
+    }
+
+    function updateMaintenanceDisplay() {
+      const maintScreen = document.getElementById('maintScreen');
+      const toggle = document.getElementById('maintToggle');
+      if (toggle) toggle.checked = isMaintenanceMode;
+
+      if (isMaintenanceMode && !isAdmin) {
+        maintScreen.style.display = 'flex';
+      } else {
+        maintScreen.style.display = 'none';
+      }
+    }
+
+    async function toggleMaintenanceMode(isMaint) {
+      await db.collection("settings").doc("system").set({ maintenance: isMaint }, { merge: true });
+    }
+
+    function unlockMaintDirect() {
+      const pass = document.getElementById('maintPassInput').value;
+      if (pass === 'hitorigoto-dsk.2009') {
+        isAdmin = true;
+        document.getElementById('adminFabBtn').style.display = 'flex';
+        alert("管理者モードで認証しました。メンテナンス画面を解除します。");
+        document.getElementById('maintScreen').style.display = 'none';
+        renderPosts();
+      } else {
+        alert("パスワードが違います。");
+      }
+    }
+
+    function loginAdmin() {
+      const pass = document.getElementById('adminPassInput').value;
+      if (pass === 'hitorigoto-dsk.2009') {
+        isAdmin = true;
+        document.getElementById('adminFabBtn').style.display = 'flex';
+        alert("管理者モードで認証しました！");
+        closeSettingsModal();
+        openAdminModal();
+        renderPosts();
+      } else {
+        alert("パスワードが違います。");
+      }
+    }
+
+    function logoutAdmin() {
+      isAdmin = false;
+      document.getElementById('adminFabBtn').style.display = 'none';
+      closeAdminModal();
+      renderPosts();
+      alert("管理者モードを終了しました。");
+    }
+
+    function openAdminModal() {
+      const list = document.getElementById('adminReportList');
+      list.innerHTML = '';
+
+      const reportedPosts = postsData.filter(p => (p.reportCount || 0) > 0 || p.hidden);
+      if (reportedPosts.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-sub);">通報・非表示の投稿はありません</div>';
+      } else {
+        reportedPosts.forEach(post => {
+          const item = document.createElement('div');
+          item.style.cssText = 'padding:10px; border:1px solid var(--navy-border); border-radius:6px; background:var(--bg-main);';
+          item.innerHTML = `
+            <div><b>${escapeHtml(post.author)}</b> (<span style="color:var(--pink-soft); font-weight:bold;">🚩 通報 ${post.reportCount || 0}件</span>)</div>
+            <div style="margin:4px 0; color:var(--text-main);">${escapeHtml(post.text)}</div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <button class="btn-subtle" style="padding:4px 8px; font-size:0.75rem;" onclick="toggleHidePost('${post.id}', ${!post.hidden})">
+                ${post.hidden ? '表示に戻す' : '非表示にする'}
+              </button>
+              <button class="btn-danger" style="margin:0; padding:4px 8px; font-size:0.75rem; width:auto;" onclick="deletePostDirect('${post.id}')">完全削除</button>
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      }
+      trackModalOpen('adminModal');
+      document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    function closeAdminModal() { trackModalClose('adminModal'); document.getElementById('adminModal').style.display = 'none'; }
+
+    async function toggleHidePost(postId, hide) {
+      await db.collection("posts").doc(postId).update({ hidden: hide });
+      openAdminModal();
+    }
+
+    async function deletePostDirect(postId) {
+      if (confirm("本当にデータベースから削除しますか？")) {
+        await db.collection("posts").doc(postId).delete();
+        openAdminModal();
+      }
+    }
 
     function subscribeFirestore() {
       db.collection("posts")
@@ -715,12 +1163,12 @@
             postsData.push({ id: doc.id, ...doc.data() });
           });
           renderPosts();
-        }, (error) => {
-          console.error("Firestore受信エラー:", error);
-        });
+          if (document.getElementById('adminModal').style.display === 'flex') {
+            openAdminModal();
+          }
+        }, (error) => { console.error("Firestore受信エラー:", error); });
     }
 
-    // --- 日時フォーマット処理 ---
     function formatPostTime(timestamp) {
       if (!timestamp) return 'たった今';
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -739,14 +1187,9 @@
       const hours = String(date.getHours()).padStart(2, '0');
       const mins = String(date.getMinutes()).padStart(2, '0');
 
-      if (isSameYear) {
-        return `${month}/${day} ${hours}:${mins}`;
-      } else {
-        return `${date.getFullYear()}/${month}/${day}`;
-      }
+      return isSameYear ? `${month}/${day} ${hours}:${mins}` : `${date.getFullYear()}/${month}/${day}`;
     }
 
-    // --- 5. タブ & 投稿描画 ---
     function switchTab(tab) {
       const timelineView = document.getElementById('timelineView');
       const mypageView = document.getElementById('mypageView');
@@ -762,24 +1205,57 @@
       }
     }
 
+    function normalizeText(str) {
+      if (!str) return '';
+      let res = str.normalize('NFKC').toLowerCase();
+      res = res.replace(/[\u30a1-\u30f6]/g, function(match) {
+        return String.fromCharCode(match.charCodeAt(0) - 0x60);
+      });
+      return res;
+    }
+
+    function getPostTotalStamps(post) {
+      if (!post || !post.stamps) return 0;
+      return Object.values(post.stamps).reduce((acc, cur) => acc + (typeof cur === 'number' ? cur : 0), 0);
+    }
+
     function renderPosts() {
       const timelineView = document.getElementById('timelineView');
       const mypageView = document.getElementById('mypageView');
       timelineView.innerHTML = ''; mypageView.innerHTML = '';
 
-      if (postsData.length === 0) {
-        timelineView.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.85rem;">まだ投稿がありません。<br>右下の＋ボタンから最初の独り言を投稿してみよう！</div>`;
+      const searchRaw = document.getElementById('searchInput').value;
+      const searchNormalized = normalizeText(searchRaw);
+      const sortBy = document.getElementById('sortSelect').value;
+
+      let filtered = postsData.filter(p => {
+        if (p.hidden && !isAdmin) return false;
+        if (!searchNormalized) return true;
+        const normText = normalizeText(p.text);
+        const normAuthor = normalizeText(p.author);
+        return normText.includes(searchNormalized) || normAuthor.includes(searchNormalized);
+      });
+
+      let sortedList = [...filtered];
+      if (sortBy === 'stamps') {
+        sortedList.sort((a, b) => getPostTotalStamps(b) - getPostTotalStamps(a));
+      } else {
+        sortedList.reverse();
       }
 
-      const myPosts = postsData.filter(p => p.userId === myUserId);
+      if (sortedList.length === 0) {
+        timelineView.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.85rem;">該当する投稿がありません</div>`;
+      }
+
+      const myPosts = sortedList.filter(p => p.userId === myUserId);
       if (myPosts.length === 0) {
         mypageView.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding:40px 0; font-size:0.85rem;">まだあなたの投稿はありません</div>`;
       }
 
-      postsData.forEach(post => {
+      sortedList.forEach(post => {
         const cardHtml = createCardElement(post);
-        timelineView.prepend(cardHtml.cloneNode(true));
-        if (post.userId === myUserId) mypageView.prepend(cardHtml.cloneNode(true));
+        timelineView.appendChild(cardHtml.cloneNode(true));
+        if (post.userId === myUserId) mypageView.appendChild(cardHtml.cloneNode(true));
       });
     }
 
@@ -822,8 +1298,18 @@
           <div class="header-left">
             <span class="author-name">${escapeHtml(post.author)}</span>
             <span class="post-time">${timeText}</span>
+            ${post.hidden ? `<span class="admin-hidden-badge">非表示中</span>` : ''}
+            ${(isAdmin && (post.reportCount || 0) > 0) ? `<span class="admin-report-badge">🚩 通報: ${post.reportCount}</span>` : ''}
           </div>
-          ${isMine ? `<button class="delete-btn" onclick="openDeleteConfirmModal('${post.id}')">DELETE</button>` : ''}
+          ${isMine ? 
+            `<button class="delete-btn" onclick="openDeleteConfirmModal('${post.id}')">DELETE</button>` : 
+            `<div class="menu-container">
+               <button class="more-btn" onclick="toggleMoreMenu(event, '${post.id}')">⋮</button>
+               <div class="more-menu" id="menu-${post.id}">
+                 <div class="more-menu-item" onclick="openReportConfirmModal('${post.id}')">通報する</div>
+               </div>
+             </div>`
+          }
         </div>
         <div class="card-text">${escapeHtml(post.text)}</div>
         <div class="stamp-container">
@@ -833,13 +1319,22 @@
       return card;
     }
 
+    function toggleMoreMenu(event, postId) {
+      event.stopPropagation();
+      document.querySelectorAll('.more-menu').forEach(m => m.classList.remove('show'));
+      const menu = document.getElementById(`menu-${postId}`);
+      if (menu) menu.classList.toggle('show');
+    }
+
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.more-menu').forEach(m => m.classList.remove('show'));
+    });
+
     async function toggleStamp(btn, postId, stampKey) {
       const post = postsData.find(p => p.id === postId);
       if (!post) return;
 
-      if (!myStampsMap[postId]) {
-        myStampsMap[postId] = {};
-      }
+      if (!myStampsMap[postId]) myStampsMap[postId] = {};
 
       const stamps = post.stamps || { like: 0, wakar: 0, sleep: 0, eat: 0, erai: 0, eco: 0 };
       const isAlreadyReacted = !!myStampsMap[postId][stampKey];
@@ -863,7 +1358,7 @@
       await db.collection("posts").doc(postId).update({ stamps: stamps });
     }
 
-    // --- 6. 投稿・文字数・NGワード ---
+    // --- 投稿・NGワード ---
     const placeholderList = [
       "なにがあった？（ここだけの秘密...）", "今日の小さな事件簿を教えて。", "今、ふと思ったくだらないことは？",
       "誰にも言えない心の声をここに吐き出そう。", "今日食べた一番美味しかったものは？", "布団の中からお送りしています。",
@@ -885,18 +1380,13 @@
 
     function filterNgWords(text) {
       let filteredText = text;
-
-      const sexualWords = [
-        "エロ", "えろ", "ちんこ", "チンコ", "おっぱい", "オッパイ", "セフレ", "せふれ", "セックス", "せっくす"
-      ];
+      const sexualWords = ["エロ", "えろ", "ちんこ", "チンコ", "おっぱい", "オッパイ", "セフレ", "せふれ", "セックス", "せっくす"];
       sexualWords.forEach(word => {
         const regex = new RegExp(word, 'gi');
         filteredText = filteredText.replace(regex, '*'.repeat(word.length));
       });
 
-      const strictWords = [
-        "死ね", "シネ", "くたばれ", "クタバレ", "殺す", "コロス", "消えろ"
-      ];
+      const strictWords = ["死ね", "シネ", "くたばれ", "クタバレ", "殺す", "コロス", "消えろ"];
       strictWords.forEach(word => {
         const regex = new RegExp(word, 'gi');
         filteredText = filteredText.replace(regex, '*'.repeat(word.length));
@@ -912,17 +1402,13 @@
     }
 
     function openPostModal() {
-      if (!currentUserName) {
-        openNameModal(true);
-        return;
-      }
-      
+      if (!currentUserName) { openNameModal(true); return; }
       dismissTooltip();
-
       const input = document.getElementById('postInput');
       input.placeholder = getRandomPlaceholder();
       input.value = '';
       updateCharCount(input);
+      trackModalOpen('postModal');
       document.getElementById('postModal').style.display = 'flex';
     }
 
@@ -932,7 +1418,6 @@
       if (!text) return;
 
       dismissTooltip();
-
       text = filterNgWords(text);
       playCuteSignalSound();
       closePostModal();
@@ -953,40 +1438,73 @@
         author: currentUserName,
         text: text,
         stamps: { like: 0, wakar: 0, sleep: 0, eat: 0, erai: 0, eco: 0 },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        hidden: false,
+        reportCount: 0
       });
 
       input.value = '';
-
-      setTimeout(() => {
-        blankScreen.remove();
-      }, 1350);
+      setTimeout(() => { blankScreen.remove(); }, 1350);
     }
 
-    // --- 7. 削除処理 ---
     let postTargetToDelete = null;
-
     function openDeleteConfirmModal(id) {
       postTargetToDelete = id;
       document.getElementById('mainWrapper').classList.add('body-blurred');
-      
       const confirmBtn = document.getElementById('execDeleteBtn');
       confirmBtn.onclick = async () => {
         playConfirmSound();
         await db.collection("posts").doc(postTargetToDelete).delete();
         closeDeleteModal();
       };
-
+      trackModalOpen('deleteConfirmModal');
       document.getElementById('deleteConfirmModal').style.display = 'flex';
     }
 
     function closeDeleteModal() {
       document.getElementById('mainWrapper').classList.remove('body-blurred');
+      trackModalClose('deleteConfirmModal');
       document.getElementById('deleteConfirmModal').style.display = 'none';
       postTargetToDelete = null;
     }
 
-    function closePostModal() { document.getElementById('postModal').style.display = 'none'; }
+    let postTargetToReport = null;
+    function openReportConfirmModal(id) {
+      if (myReportedPostsMap[id]) {
+        alert("この投稿はすでに通報済みです。");
+        return;
+      }
+      postTargetToReport = id;
+      document.getElementById('mainWrapper').classList.add('body-blurred');
+      const confirmBtn = document.getElementById('execReportBtn');
+      confirmBtn.onclick = async () => {
+        playConfirmSound();
+        const post = postsData.find(p => p.id === postTargetToReport);
+        if (post) {
+          const currentCount = post.reportCount || 0;
+          await db.collection("posts").doc(postTargetToReport).update({ reportCount: currentCount + 1 });
+          myReportedPostsMap[postTargetToReport] = true;
+          saveMyReportsMap();
+          alert("通報を管理者に送信しました。");
+        }
+        closeReportModal();
+      };
+      trackModalOpen('reportConfirmModal');
+      document.getElementById('reportConfirmModal').style.display = 'flex';
+    }
+
+    function closeReportModal() {
+      document.getElementById('mainWrapper').classList.remove('body-blurred');
+      trackModalClose('reportConfirmModal');
+      document.getElementById('reportConfirmModal').style.display = 'none';
+      postTargetToReport = null;
+    }
+
+    function closePostModal() {
+      trackModalClose('postModal');
+      document.getElementById('postModal').style.display = 'none';
+    }
+
     function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
   </script>
 </body>
